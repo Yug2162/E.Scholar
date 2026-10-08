@@ -24,8 +24,7 @@ app.use(express.json());
 app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://schlor.vercel.app",
-  "https://escholar.vercel.app",
+  "https://e-scholar-ten.vercel.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
