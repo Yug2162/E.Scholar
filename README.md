@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/status-live-success)](https://escholar.vercel.app)
 
-**[Live Demo](https://escholar.vercel.app)**
+**[Live Demo](https://e-scholar-ten.vercel.app)**
 
 ---
 
