@@ -1,10 +1,13 @@
 import { useState } from "react"
 import { HiOutlineSparkles } from "react-icons/hi2"
+import { FiExternalLink } from "react-icons/fi"
+import ReactMarkdown from "react-markdown"
 import { askCourseDoubt } from "../../../services/operations/courseDoubtAPI"
 
 export default function CourseDoubtBox({ courseId }) {
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState("")
+  const [netraUrl, setNetraUrl] = useState("https://netra-agentic-ai.streamlit.app/")
   const [loading, setLoading] = useState(false)
   const [asked, setAsked] = useState(false)
 
@@ -15,16 +18,31 @@ export default function CourseDoubtBox({ courseId }) {
     setLoading(true)
     setAsked(true)
     const result = await askCourseDoubt(question, courseId)
-    setAnswer(result)
+    if (typeof result === "object" && result !== null) {
+      setAnswer(result.answer || "No response received")
+      if (result.netraUrl) setNetraUrl(result.netraUrl)
+    } else {
+      setAnswer(result)
+    }
     setLoading(false)
   }
 
   return (
-    <div className="my-8 border border-[rgba(6,182,212,0.15)] rounded-[4px] p-8">
-      <p className="flex items-center gap-2 text-3xl font-semibold text-[#f0f9ff]">
-        <HiOutlineSparkles className="text-[#06b6d4]" />
-        Ask a Doubt
-      </p>
+    <div className="my-8 border border-[rgba(6,182,212,0.15)] rounded-[4px] p-8 bg-[#0c1a2e]/40">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-3xl font-semibold text-[#f0f9ff]">
+          <HiOutlineSparkles className="text-[#06b6d4]" />
+          Ask a Doubt
+        </p>
+        <a
+          href={netraUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-[#06b6d4] hover:underline"
+        >
+          Powered by Netra AI <FiExternalLink size={12} />
+        </a>
+      </div>
       <p className="mt-2 text-sm text-[#94a3b8]">
         Ask a question about this course and get an instant AI-generated answer.
       </p>
@@ -51,7 +69,9 @@ export default function CourseDoubtBox({ courseId }) {
           {loading ? (
             <p className="text-sm text-[#94a3b8]">Getting your answer...</p>
           ) : (
-            <p className="whitespace-pre-wrap text-[#e2e8f0]">{answer}</p>
+            <div className="prose prose-invert max-w-none text-[#e2e8f0] text-sm leading-relaxed">
+              <ReactMarkdown>{answer}</ReactMarkdown>
+            </div>
           )}
         </div>
       )}

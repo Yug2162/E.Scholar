@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import { BsChevronDown } from "react-icons/bs"
 import { IoIosArrowBack } from "react-icons/io"
+import { RiRobot2Line } from "react-icons/ri"
+import { FiExternalLink } from "react-icons/fi"
+import { HiOutlineSparkles } from "react-icons/hi2"
 import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 
@@ -18,6 +21,8 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
     totalNoOfLectures,
     completedLectures,
   } = useSelector((state) => state.viewCourse)
+
+  const netraUrl = "https://netra-agentic-ai.streamlit.app/"
 
   useEffect(() => {
     ;(() => {
@@ -37,6 +42,15 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseSectionData, courseEntireData, location.pathname])
+
+  const scrollToDoubtSection = () => {
+    const el = document.getElementById("netra-ai-qna")
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" })
+      const input = el.querySelector("input")
+      if (input) input.focus()
+    }
+  }
 
   return (
     <>
@@ -64,7 +78,7 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
           </div>
         </div>
 
-        <div className="h-[calc(100vh-5rem)] overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {courseSectionData.map((course, index) => (
             <div
               className="mt-2 cursor-pointer text-sm text-[#94a3b8]"
@@ -120,6 +134,41 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Netra AI Tutor Sidebar Card */}
+        <div className="mt-auto border-t border-[rgba(6,182,212,0.18)] bg-gradient-to-b from-[#0c1a2e] to-[#060d1a] p-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#f0f9ff]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#22d3ee] opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#06b6d4]"></span>
+              </span>
+              <span className="text-[#06b6d4] flex items-center gap-1">
+                <RiRobot2Line size={13} /> Netra AI Tutor
+              </span>
+            </div>
+            <a
+              href={netraUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-[#94a3b8] hover:text-[#06b6d4] flex items-center gap-1 transition-colors"
+            >
+              <span>App</span>
+              <FiExternalLink size={10} />
+            </a>
+          </div>
+          <p className="text-[11px] text-[#94a3b8] leading-tight mb-2.5">
+            Clear video tutorial doubts with instant AI-powered answers.
+          </p>
+          <button
+            type="button"
+            onClick={scrollToDoubtSection}
+            className="w-full flex items-center justify-center gap-1.5 rounded-[4px] border border-[#06b6d4] bg-[rgba(6,182,212,0.08)] py-1.5 text-xs font-semibold text-[#06b6d4] hover:bg-[#06b6d4] hover:text-[#060d1a] transition-all"
+          >
+            <HiOutlineSparkles size={13} />
+            <span>Ask a Doubt</span>
+          </button>
         </div>
       </div>
     </>

@@ -26,37 +26,50 @@ export async function checkCertificateEligibility(courseId, token) {
 
 // Download the certificate PDF — handled separately from apiConnector
 // because we need the raw blob, not JSON
-export async function downloadCertificate(courseId, token, courseName) {
+export async function downloadCertificate(courseId, token, courseName = "Course") {
+  const effectiveToken = token || localStorage.getItem("token")
+  if (!effectiveToken) {
+    toast.error("Please login to download your certificate")
+    return
+  }
+
   const toastId = toast.loading("Generating your certificate...")
   try {
-    const response = await fetch(
-      `${DOWNLOAD_CERTIFICATE_API}/${courseId}`,
-      {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    )
+    const response = await fetch(`${DOWNLOAD_CERTIFICATE_API}/${courseId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${effectiveToken}`,
+      },
+    })
 
     if (!response.ok) {
-      throw new Error("Could not generate certificate")
+      let errorMsg = "Could not generate certificate"
+      try {
+        const errorData = await response.json()
+        if (errorData?.message) errorMsg = errorData.message
+      } catch (_) {}
+      throw new Error(errorMsg)
     }
 
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const safeBlob = new Blob([blob], { type: "application/pdf" })
+    const url = window.URL.createObjectURL(safeBlob)
     const link = document.createElement("a")
     link.href = url
-    link.download = `EScholar_Certificate_${courseName.replace(/\s+/g, "_")}.pdf`
+    const safeName = (courseName || "Course").replace(/[^a-zA-Z0-9_\-]/g, "_")
+    link.download = `EScholar_Certificate_${safeName}.pdf`
     document.body.appendChild(link)
     link.click()
     link.remove()
-    window.URL.revokeObjectURL(url)
+    setTimeout(() => window.URL.revokeObjectURL(url), 1000)
 
-    toast.success("Certificate downloaded!")
+    toast.success("Certificate downloaded successfully!")
   } catch (error) {
     console.log("DOWNLOAD CERTIFICATE ERROR....", error)
-    toast.error("Could not download certificate")
+    toast.error(error.message || "Could not download certificate")
+  } finally {
+    toast.dismiss(toastId)
   }
-  toast.dismiss(toastId)
 }
 
 // Public — verify a certificate by ID (no auth)
