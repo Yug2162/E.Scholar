@@ -4,15 +4,42 @@ import { useNavigate, useParams } from "react-router-dom"
 
 import "video-react/dist/video-react.css"
 import { useLocation } from "react-router-dom"
-import { BigPlayButton, Player } from "video-react"
+import { toast } from "react-hot-toast"
+import {
+  BigPlayButton,
+  ControlBar,
+  PlaybackRateMenuButton,
+  Player,
+} from "video-react"
+import { FiLock } from "react-icons/fi"
 import { RiRobot2Line } from "react-icons/ri"
 import { HiOutlineSparkles, HiSparkles } from "react-icons/hi2"
 import { FiExternalLink } from "react-icons/fi"
 
-import { markLectureAsComplete } from "../../../services/operations/courseDetailsAPI"
-import { updateCompletedLectures } from "../../../slices/viewCourseSlice"
+import {
+  markLectureAsComplete,
+  saveWatchProgress,
+} from "../../../services/operations/courseDetailsAPI"
+import {
+  updateCompletedLectures,
+  updateWatchProgress,
+} from "../../../slices/viewCourseSlice"
 import IconBtn from "../../Common/IconBtn"
 import VideoDoubtSection from "./VideoDoubtSection"
+
+// ---- No-skip settings ----
+// How far past the furthest watched point the playhead may be (seconds).
+// Normal playback moves ~0.25s between updates, a seek jumps much further.
+const SEEK_TOLERANCE = 1.5
+// How often watched progress is saved to the server (ms)
+const SAVE_INTERVAL = 10000
+
+const formatTime = (sec) => {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
 
 const VideoDetails = () => {
   const { courseId, sectionId, subSectionId } = useParams()
@@ -21,13 +48,30 @@ const VideoDetails = () => {
   const playerRef = useRef(null)
   const dispatch = useDispatch()
   const { token } = useSelector((state) => state.auth)
-  const { courseSectionData, courseEntireData, completedLectures } =
-    useSelector((state) => state.viewCourse)
+  const {
+    courseSectionData,
+    courseEntireData,
+    completedLectures,
+    totalNoOfLectures,
+    watchProgress,
+    examInfo,
+  } = useSelector((state) => state.viewCourse)
 
   const [videoData, setVideoData] = useState([])
   const [previewSource, setPreviewSource] = useState("")
   const [videoEnded, setVideoEnded] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // ---- No-skip state ----
+  // A lecture that is already completed can be scrubbed freely.
+  const isUnlocked = completedLectures.includes(subSectionId)
+  const unlockedRef = useRef(isUnlocked)
+  unlockedRef.current = isUnlocked
+  const maxWatchedRef = useRef(0) // furthest point reached (seconds)
+  const lastSavedRef = useRef(0) // last value sent to the server
+  const resumedRef = useRef(false) // jumped to the saved position yet?
+  const lastWarnRef = useRef(0)
+  const [watched, setWatched] = useState({ max: 0, duration: 0 })
 
   const netraAiUrl = "https://netra-agentic-ai.streamlit.app/"
 
@@ -49,6 +93,115 @@ const VideoDetails = () => {
       }
     })()
   }, [courseSectionData, courseEntireData, location.pathname])
+
+  // Send the furthest watched point to the server (only if it moved)
+  const persistProgress = async (force = false) => {
+    const seconds = maxWatchedRef.current
+    if (!token || !subSectionId || unlockedRef.current) return
+    if (!force && seconds <= lastSavedRef.current + 1) return
+    lastSavedRef.current = seconds
+    const accepted = await saveWatchProgress(
+      { courseId, subsectionId: subSectionId, currentTime: seconds },
+      token
+    )
+    if (accepted !== null) {
+      // The server limits how fast progress can grow; follow its value
+      if (accepted < maxWatchedRef.current) maxWatchedRef.current = accepted
+      lastSavedRef.current = accepted
+      dispatch(updateWatchProgress({ subSectionId, seconds: accepted }))
+    }
+  }
+
+  // New lecture: start from the progress saved on the server
+  useEffect(() => {
+    maxWatchedRef.current = watchProgress?.[subSectionId] || 0
+    lastSavedRef.current = maxWatchedRef.current
+    resumedRef.current = false
+    setWatched({ max: maxWatchedRef.current, duration: 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subSectionId])
+
+  // Saved progress can arrive after the page opened (course data loads
+  // async): pick it up and continue from there
+  useEffect(() => {
+    const saved = watchProgress?.[subSectionId] || 0
+    if (saved > maxWatchedRef.current) {
+      maxWatchedRef.current = saved
+      lastSavedRef.current = Math.max(lastSavedRef.current, saved)
+      resumedRef.current = false
+      setWatched((w) => ({ ...w, max: Math.floor(saved) }))
+    }
+  }, [watchProgress, subSectionId])
+
+  // Watch the player and pull the playhead back if it jumps ahead
+  useEffect(() => {
+    const player = playerRef.current
+    if (!player || !videoData?.videoUrl) return
+
+    const unsubscribe = player.subscribeToStateChange((state) => {
+      const { currentTime, duration, seeking, paused, playbackRate } = state
+
+      if (unlockedRef.current) {
+        if (duration) setWatched((w) => (w.duration === duration ? w : { ...w, duration }))
+        return
+      }
+
+      // Speed is locked to 1x
+      if (playbackRate && playbackRate !== 1 && player.video?.video) {
+        player.video.video.playbackRate = 1
+      }
+
+      // First time the video is ready: continue where the student left off
+      if (!resumedRef.current && duration > 0) {
+        resumedRef.current = true
+        const resumeAt = maxWatchedRef.current
+        if (resumeAt > 1 && resumeAt < duration - 2) player.seek(resumeAt)
+      }
+
+      if (currentTime > maxWatchedRef.current + SEEK_TOLERANCE) {
+        // Tried to skip ahead: go back to the furthest watched point
+        player.seek(maxWatchedRef.current)
+        const now = Date.now()
+        if (now - lastWarnRef.current > 3000) {
+          lastWarnRef.current = now
+          toast("You can't skip ahead in this lecture", { icon: "\uD83D\uDD12", id: "no-skip" })
+        }
+        return
+      }
+
+      if (!seeking && !paused && currentTime > maxWatchedRef.current) {
+        maxWatchedRef.current = currentTime
+      }
+
+      setWatched((w) => {
+        const max = Math.floor(maxWatchedRef.current)
+        const d = duration || 0
+        return w.max === max && w.duration === d ? w : { max, duration: d }
+      })
+    })
+
+    const timer = setInterval(() => persistProgress(), SAVE_INTERVAL)
+    const onLeave = () => persistProgress()
+    window.addEventListener("beforeunload", onLeave)
+
+    return () => {
+      unsubscribe && unsubscribe()
+      clearInterval(timer)
+      window.removeEventListener("beforeunload", onLeave)
+      persistProgress() // save when switching lecture / leaving the page
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoData?.videoUrl, subSectionId])
+
+  const handleVideoEnded = () => {
+    const player = playerRef.current
+    const duration = player?.getState()?.player?.duration
+    if (!unlockedRef.current && duration) {
+      maxWatchedRef.current = Math.max(maxWatchedRef.current, duration)
+      persistProgress(true)
+    }
+    setVideoEnded(true)
+  }
 
   const isFirstVideo = () => {
     const currentSectionIndx = courseSectionData.findIndex(
@@ -141,6 +294,8 @@ const VideoDetails = () => {
 
   const handleLectureCompletion = async () => {
     setLoading(true)
+    // Make sure the server knows the video was watched to the end
+    await persistProgress(true)
     const res = await markLectureAsComplete(
       { courseId: courseId, subsectionId: subSectionId },
       token
@@ -173,10 +328,18 @@ const VideoDetails = () => {
           ref={playerRef}
           aspectRatio="16:9"
           playsInline
-          onEnded={() => setVideoEnded(true)}
+          onEnded={handleVideoEnded}
           src={videoData?.videoUrl}
         >
           <BigPlayButton position="center" />
+          {/* Speed menu is hidden until the lecture has been completed */}
+          {isUnlocked ? (
+            <ControlBar />
+          ) : (
+            <ControlBar>
+              <PlaybackRateMenuButton disabled />
+            </ControlBar>
+          )}
           {videoEnded && (
             <div
               style={{
@@ -214,6 +377,17 @@ const VideoDetails = () => {
                     Prev
                   </button>
                 )}
+                {isLastVideo() &&
+                  examInfo?.hasExam &&
+                  completedLectures.length >= totalNoOfLectures && (
+                    <button
+                      disabled={loading}
+                      onClick={() => navigate(`/view-course/${courseId}/exam`)}
+                      className="border border-[#06b6d4] bg-[#06b6d4] text-[#060d1a] font-semibold px-5 py-2 rounded-[4px] text-sm hover:bg-[#22d3ee] transition-all duration-150"
+                    >
+                      {examInfo?.passed ? "View Final Exam" : "Take Final Exam"}
+                    </button>
+                  )}
                 {!isLastVideo() && (
                   <button
                     disabled={loading}
@@ -227,6 +401,21 @@ const VideoDetails = () => {
             </div>
           )}
         </Player>
+      )}
+
+      {/* No-skip notice */}
+      {videoData?.videoUrl && !isUnlocked && (
+        <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 rounded-[4px] border border-[rgba(6,182,212,0.15)] bg-[#0c1a2e] px-4 py-2 text-xs text-[#94a3b8]">
+          <span className="flex items-center gap-2">
+            <FiLock className="text-[#06b6d4]" />
+            Skipping ahead is disabled. Watch the full lecture to complete it.
+          </span>
+          {watched.duration > 0 && (
+            <span className="font-mono text-[#f0f9ff]">
+              Watched {formatTime(watched.max)} / {formatTime(watched.duration)}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Video Details Header & Netra AI Quick Bar */}

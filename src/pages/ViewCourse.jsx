@@ -5,11 +5,14 @@ import { Outlet, useParams } from "react-router-dom"
 import CourseReviewModal from "../components/core/ViewCourse/CourseReviewModal"
 import VideoDetailsSidebar from "../components/core/ViewCourse/VideoDetailsSidebar"
 import { getFullDetailsOfCourse } from "../services/operations/courseDetailsAPI"
+import { getExamStatus } from "../services/operations/examAPI"
 import {
   setCompletedLectures,
   setCourseSectionData,
   setEntireCourseData,
   setTotalNoOfLectures,
+  setWatchProgress,
+  setExamInfo,
 } from "../slices/viewCourseSlice"
 
 export default function ViewCourse() {
@@ -25,11 +28,17 @@ export default function ViewCourse() {
       dispatch(setCourseSectionData(courseData.courseDetails.courseContent))
       dispatch(setEntireCourseData(courseData.courseDetails))
       dispatch(setCompletedLectures(courseData.completedVideos))
+      dispatch(setWatchProgress(courseData.watchProgress))
       let lectures = 0
       courseData?.courseDetails?.courseContent?.forEach((sec) => {
         lectures += sec.subSection.length
       })
       dispatch(setTotalNoOfLectures(lectures))
+    })()
+    ;(async () => {
+      dispatch(setExamInfo(null))
+      const exam = await getExamStatus(courseId, token, true)
+      dispatch(setExamInfo(exam))
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

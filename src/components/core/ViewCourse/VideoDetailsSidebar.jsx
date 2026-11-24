@@ -2,7 +2,8 @@ import { useEffect, useState } from "react"
 import { BsChevronDown } from "react-icons/bs"
 import { IoIosArrowBack } from "react-icons/io"
 import { RiRobot2Line } from "react-icons/ri"
-import { FiExternalLink } from "react-icons/fi"
+import { FiExternalLink, FiLock, FiCheckCircle } from "react-icons/fi"
+import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2"
 import { HiOutlineSparkles } from "react-icons/hi2"
 import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
@@ -20,7 +21,11 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
     courseEntireData,
     totalNoOfLectures,
     completedLectures,
+    examInfo,
   } = useSelector((state) => state.viewCourse)
+  const lecturesDone =
+    totalNoOfLectures > 0 && completedLectures.length >= totalNoOfLectures
+  const onExamPage = location.pathname.endsWith("/exam")
 
   const netraUrl = "https://netra-agentic-ai.streamlit.app/"
 
@@ -134,6 +139,33 @@ export default function VideoDetailsSidebar({ setReviewModal }) {
               )}
             </div>
           ))}
+
+          {/* Final exam: unlocked after every lecture is completed */}
+          {examInfo?.hasExam && (
+            <div
+              onClick={() =>
+                navigate(`/view-course/${courseEntireData?._id}/exam`)
+              }
+              title={
+                lecturesDone
+                  ? "Final exam"
+                  : "Complete all lectures to unlock the final exam"
+              }
+              className={`mt-2 flex cursor-pointer items-center gap-3 border-y border-[rgba(6,182,212,0.08)] px-5 py-4 text-sm transition-all duration-150 ${
+                onExamPage
+                  ? "bg-[rgba(6,182,212,0.08)] border-l-2 border-l-[#06b6d4] pl-[18px] text-[#06b6d4]"
+                  : "bg-[#060d1a] text-[#f0f9ff] hover:bg-[rgba(6,182,212,0.05)]"
+              }`}
+            >
+              <HiOutlineClipboardDocumentCheck size={18} className="text-[#06b6d4]" />
+              <span className="flex-1 font-semibold">Final Exam</span>
+              {examInfo.passed ? (
+                <FiCheckCircle className="text-[#22d3ee]" title="Passed" />
+              ) : (
+                !lecturesDone && <FiLock className="text-[#94a3b8]" />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Netra AI Tutor Sidebar Card */}

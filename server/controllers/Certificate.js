@@ -342,9 +342,16 @@ exports.downloadCertificate = async (req, res) => {
     })
 
     if (!certificate) {
+      // Tell the student what is still missing
+      const { allLecturesCompleted, examRequirementMet } = require("../utils/courseCompletion")
+      const lecturesDone = await allLecturesCompleted(userId, courseId).catch(() => false)
+      const examDone = await examRequirementMet(userId, courseId).catch(() => true)
       return res.status(404).json({
         success: false,
-        message: "Certificate not found. Complete the course first.",
+        message:
+          lecturesDone && !examDone
+            ? "Pass the final exam to unlock your certificate."
+            : "Certificate not found. Complete the course first.",
       })
     }
 

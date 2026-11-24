@@ -48,7 +48,7 @@ const {
 } = require("../controllers/RatingandReview")
 const {
   updateCourseProgress,
-  getProgressPercentage,
+  updateWatchProgress,
 } = require("../controllers/courseProgress")
 // Importing Middlewares
 const { auth, isInstructor, isStudent, isAdmin } = require("../middleware/auth")
@@ -84,6 +84,8 @@ router.post("/getCourseDetails", getCourseDetails)
 router.post("/getFullCourseDetails", auth, getFullCourseDetails)
 // To Update Course Progress
 router.post("/updateCourseProgress", auth, isStudent, updateCourseProgress)
+// Save how far a lecture video has been watched (anti-skip)
+router.post("/updateWatchProgress", auth, isStudent, updateWatchProgress)
 // To get Course Progress
 // router.post("/getProgressPercentage", auth, isStudent, getProgressPercentage)
 // Delete a Course

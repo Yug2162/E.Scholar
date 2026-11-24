@@ -42,6 +42,7 @@ export const courseEndpoints = {
   GET_FULL_COURSE_DETAILS_AUTHENTICATED:
     BASE_URL + "/course/getFullCourseDetails",
   LECTURE_COMPLETION_API: BASE_URL + "/course/updateCourseProgress",
+  WATCH_PROGRESS_API: BASE_URL + "/course/updateWatchProgress",
   CREATE_RATING_API: BASE_URL + "/course/createRating",
 }
 
@@ -81,4 +82,14 @@ export const certificateEndpoints = {
 // COURSE DOUBT ENDPOINTS
 export const courseDoubtEndpoints = {
 COURSE_DOUBT_API: BASE_URL + "/profile/course-doubt",
+}
+
+// FINAL EXAM ENDPOINTS
+export const examEndpoints = {
+  INSTRUCTOR_EXAM_API: BASE_URL + "/exam/instructor", // GET /:courseId
+  SAVE_EXAM_API: BASE_URL + "/exam/save",
+  DELETE_EXAM_API: BASE_URL + "/exam", // DELETE /:courseId
+  EXAM_STATUS_API: BASE_URL + "/exam/status", // GET /:courseId
+  START_EXAM_API: BASE_URL + "/exam/start",
+  SUBMIT_EXAM_API: BASE_URL + "/exam/submit",
 }

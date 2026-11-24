@@ -7,6 +7,7 @@ import { useState } from "react"
 import { FaCheck } from "react-icons/fa"
 import { FiEdit2 } from "react-icons/fi"
 import { HiClock } from "react-icons/hi"
+import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2"
 import { RiDeleteBin6Line } from "react-icons/ri"
 import { useNavigate } from "react-router-dom"
 
@@ -125,6 +126,16 @@ export default function CoursesTable({ courses, setCourses }) {
                     className="px-2 transition-all duration-200 hover:scale-110 hover:text-caribbeangreen-300"
                   >
                     <FiEdit2 size={20} />
+                  </button>
+                  <button
+                    disabled={loading}
+                    onClick={() => {
+                      navigate(`/dashboard/course-exam/${course._id}`)
+                    }}
+                    title="Final Exam"
+                    className="px-2 transition-all duration-200 hover:scale-110 hover:text-[#06b6d4]"
+                  >
+                    <HiOutlineClipboardDocumentCheck size={21} />
                   </button>
                   <button
                     disabled={loading}
