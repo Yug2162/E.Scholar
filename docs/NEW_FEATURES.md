@@ -26,6 +26,27 @@ npm run dev
 The frontend runs on http://localhost:3000 and the API on http://localhost:4000.
 Your existing `.env` (root) and `server/.env` work as they are.
 
+### Quick demo (no database or email needed)
+
+Runs the API on a throwaway in-memory MongoDB with a ready-made course
+(2 short lectures), so your real database is never touched:
+
+```bash
+cd server
+node scripts/demoLocal.js      # API on :4000, stop with Ctrl+C (data is deleted)
+```
+
+In a second terminal, start the frontend with `npm start` in the project root.
+Your root `.env` must have `REACT_APP_BASE_URL=http://localhost:4000/api/v1`.
+
+| Account | Password | Role |
+|---|---|---|
+| `teacher@demo.local` | `Demo@123` | Instructor (owns "Demo Course") |
+| `student@demo.local` | `Demo@123` | Student (enrolled) |
+
+Signing up for a new account won't email an OTP in demo mode. The OTP is
+printed in the API terminal instead.
+
 Run the backend tests (they use an in-memory MongoDB, so your real database is never touched):
 
 ```bash
