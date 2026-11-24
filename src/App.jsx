@@ -35,6 +35,8 @@ import ViewCourse from "./pages/ViewCourse"
 import { getUserDetails } from "./services/operations/profileAPI"
 import { ACCOUNT_TYPE } from "./utils/constants"
 import VerifyCertificate from "./pages/VerifyCertificate"
+import ExamBuilder from "./components/core/Dashboard/ExamBuilder"
+import ExamPage from "./components/core/ViewCourse/ExamPage"
 
 
 function App() {
@@ -123,6 +125,10 @@ function App() {
                 path="dashboard/edit-course/:courseId"
                 element={<EditCourse />}
               />
+              <Route
+                path="dashboard/course-exam/:courseId"
+                element={<ExamBuilder />}
+              />
             </>
           )}
           {/* Route only for Students */}
@@ -152,6 +158,7 @@ function App() {
                 path="view-course/:courseId/section/:sectionId/sub-section/:subSectionId"
                 element={<VideoDetails />}
               />
+              <Route path="view-course/:courseId/exam" element={<ExamPage />} />
             </>
           )}
         </Route>

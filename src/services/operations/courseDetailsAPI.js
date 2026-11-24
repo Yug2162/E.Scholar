@@ -22,6 +22,7 @@ const {
   GET_FULL_COURSE_DETAILS_AUTHENTICATED,
   CREATE_RATING_API,
   LECTURE_COMPLETION_API,
+  WATCH_PROGRESS_API,
 } = courseEndpoints
 
 export const getAllCourses = async () => {
@@ -357,11 +358,25 @@ export const markLectureAsComplete = async (data, token) => {
     result = true
   } catch (error) {
     console.log("MARK_LECTURE_AS_COMPLETE_API API ERROR............", error)
-    toast.error(error.message)
+    toast.error(error?.response?.data?.error || error.message)
     result = false
   }
   toast.dismiss(toastId)
   return result
+}
+
+// Save how far the current lecture has been watched (no toast — runs in the
+// background every few seconds). Returns the server-accepted value or null.
+export const saveWatchProgress = async (data, token) => {
+  try {
+    const response = await apiConnector("POST", WATCH_PROGRESS_API, data, {
+      Authorization: `Bearer ${token}`,
+    })
+    return response?.data?.success ? response.data.maxWatched : null
+  } catch (error) {
+    console.log("WATCH_PROGRESS_API ERROR............", error)
+    return null
+  }
 }
 
 // create a rating for course

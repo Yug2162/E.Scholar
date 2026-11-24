@@ -5,6 +5,10 @@ const initialState = {
   courseEntireData: [],
   completedLectures: [],
   totalNoOfLectures: 0,
+  // { [subSectionId]: secondsWatched } — furthest point reached per lecture
+  watchProgress: {},
+  // final exam summary from /exam/status ({ hasExam, passed, ... }) or null
+  examInfo: null,
 }
 
 const viewCourseSlice = createSlice({
@@ -26,6 +30,18 @@ const viewCourseSlice = createSlice({
     updateCompletedLectures: (state, action) => {
       state.completedLectures = [...state.completedLectures, action.payload]
     },
+    setExamInfo: (state, action) => {
+      state.examInfo = action.payload
+    },
+    setWatchProgress: (state, action) => {
+      state.watchProgress = action.payload || {}
+    },
+    updateWatchProgress: (state, action) => {
+      const { subSectionId, seconds } = action.payload
+      if ((state.watchProgress[subSectionId] || 0) < seconds) {
+        state.watchProgress[subSectionId] = seconds
+      }
+    },
   },
 })
 
@@ -35,6 +51,9 @@ export const {
   setTotalNoOfLectures,
   setCompletedLectures,
   updateCompletedLectures,
+  setWatchProgress,
+  updateWatchProgress,
+  setExamInfo,
 } = viewCourseSlice.actions
 
 export default viewCourseSlice.reducer

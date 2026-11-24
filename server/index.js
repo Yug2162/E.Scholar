@@ -7,6 +7,7 @@ const courseRoutes = require("./routes/Course");
 const paymentRoutes = require("./routes/Payments");
 const contactUsRoute = require("./routes/Contact");
 const certificateRoutes = require("./routes/Certificate");
+const examRoutes = require("./routes/Exam");
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -48,6 +49,7 @@ app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/reach", contactUsRoute);
 app.use("/api/v1/certificate", certificateRoutes);
+app.use("/api/v1/exam", examRoutes);
 
 app.get("/", (req, res) => {
   return res.json({

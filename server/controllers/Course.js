@@ -5,6 +5,8 @@ const SubSection = require("../models/Subsection")
 const User = require("../models/User")
 const { uploadImageToCloudinary } = require("../utils/imageUploader")
 const CourseProgress = require("../models/CourseProgress")
+const Exam = require("../models/Exam")
+const ExamAttempt = require("../models/ExamAttempt")
 const { convertSecondsToDuration } = require("../utils/secToDuration")
 const axios = require("axios")
 // Function to create a new course
@@ -350,6 +352,13 @@ exports.getFullCourseDetails = async (req, res) => {
         completedVideos: courseProgressCount?.completedVideos
           ? courseProgressCount?.completedVideos
           : [],
+        // { [subSectionId]: secondsWatched } — used to block skipping ahead
+        watchProgress: Object.fromEntries(
+          (courseProgressCount?.watchProgress || []).map((w) => [
+            w.subSection.toString(),
+            w.maxWatched,
+          ])
+        ),
       },
     })
   } catch (error) {
@@ -419,6 +428,10 @@ exports.deleteCourse = async (req, res) => {
       // Delete the section
       await Section.findByIdAndDelete(sectionId)
     }
+
+    // Delete the course's final exam and its attempts
+    const exam = await Exam.findOneAndDelete({ course: courseId })
+    if (exam) await ExamAttempt.deleteMany({ exam: exam._id })
 
     // Delete the course
     await Course.findByIdAndDelete(courseId)
